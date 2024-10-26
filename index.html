@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>麦序统计</title>
+<link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; }
+label { display: block; margin-top: 10px; }
+input[type="text"], input[type="time"], select {
+    width: 300px;
+    height: 35px;
+    font-size: 16px;
+    padding: 5px;
+}
+.modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgb(0,0,0); 
+    background-color: rgba(0,0,0,0.4); 
+    padding-top: 60px; 
+}
+.modal-content {
+    background-color: #fefefe;
+    margin: 5% auto; 
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; 
+}
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+.copy-button {
+    margin-top: 20px;
+    padding: 10px 20px;
+}
+</style>
+</head>
+<body>
+
+<h1>麦序统计表单</h1>
+
+<label>日期: <input type="text" id="datePicker"></label>
+<label>时间: <input type="time" id="time"></label>
+<label>主持: <input type="text" id="host"></label>
+<label>麦序统计:
+<select id="mikeOrder">
+<option value="0-3">0-3</option>
+<option value="3-6">3-6</option>
+<option value="6-9">6-9</option>
+<option value="9-12">9-12</option>
+</select>
+</label>
+<label>0-1麦序: <input type="text" id="mike0to1"></label>
+<label>1-2麦序: <input type="text" id="mike1to2"></label>
+<label>2-3麦序: <input type="text" id="mike2to3"></label>
+<label>麦序合计: <input type="text" id="mikeTotal"></label>
+<label>上档截止总流水: <input type="text" id="upperTotal"></label>
+<label>本档截止总流水: <input type="text" id="currentTotal"></label>
+<label>本档流水: <input type="text" id="currentFlow"></label>
+<label>全麦: <input type="text" id="fullMike"></label>
+<button id="mergeCalculate">合并计算</button>
+<label>带走: <input type="text" id="takeAway"></label>
+<label>单点: <input type="text" id="singlePoint"></label>
+<label>黑麦: <input type="text" id="blackMike"></label>
+<label>跳麦: <input type="text" id="jumpMike"></label>
+<label>被踢下麦人员: <input type="text" id="kickedPersons"></label>
+<label>最优质最活跃: <input type="text" id="bestActive"></label>
+<label>最不优质不活跃: <input type="text" id="worstInactive"></label>
+<label>主持建议: <input type="text" id="hostSuggestion"></label>
+
+<button id="submit">提交</button>
+
+<!-- Modal -->
+<div id="infoModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <pre id="modalData"></pre>
+        <button class="copy-button" id="copyButton">复制信息</button>
+    </div>
+</div>
+
+<script>
+$(function() {
+    $("#datePicker").datepicker();
+});
+
+function formatAndCalculate(input) {
+    const regex = /([^\d\s]+)(\d+)([+\-*/]?)(\d*)/g;
+    return input.replace(regex, (match, item, num1, operator, num2) => {
+        num1 = parseInt(num1);
+        num2 = operator ? parseInt(num2) || 0 : 0;
+        const result = operator === '+' ? num1 + num2 : operator === 'x' ? num1 * num2 : num1;
+        return `${item}${result}`;
+    });
+}
+
+$("#mergeCalculate").click(function() {
+    const fullMikeInput = $("#fullMike").val();
+    const formattedFullMike = formatAndCalculate(fullMikeInput);
+    $("#fullMike").val(formattedFullMike);
+});
+
+$("#submit").click(function() {
+    const formattedFullMike = formatAndCalculate($("#fullMike").val());
+    const data = {
+        日期: $("#datePicker").val(),
+        时间: $("#time").val(),
+        主持: $("#host").val(),
+        麦序统计: $("#mikeOrder").val(),
+        "0-1麦序": $("#mike0to1").val(),
+        "1-2麦序": $("#mike1to2").val(),
+        "2-3麦序": $("#mike2to3").val(),
+        麦序合计: $("#mikeTotal").val(),
+        上档截止总流水: $("#upperTotal").val(),
+        本档截止总流水: $("#currentTotal").val(),
+        本档流水: $("#currentFlow").val(),
+        全麦: formattedFullMike,
+        带走: $("#takeAway").val(),
+        单点: $("#singlePoint").val(),
+        黑麦: $("#blackMike").val(),
+        跳麦: $("#jumpMike").val(),
+        被踢下麦人员: $("#kickedPersons").val(),
+        最优质最活跃: $("#bestActive").val(),
+        最不优质不活跃: $("#worstInactive").val(),
+        主持建议: $("#hostSuggestion").val()
+    };
+    
+    $("#modalData").text(JSON.stringify(data, null, 2));
+    $("#infoModal").show();
+});
+
+$(".close").click(function() {
+    $("#infoModal").hide();
+});
+
+$("#copyButton").click(function() {
+    const dataText = $("#modalData").text();
+    navigator.clipboard.writeText(dataText).then(function() {
+        alert("信息已复制到剪贴板");
+    }, function(err) {
+        alert("复制失败: ", err);
+    });
+});
+
+// 关闭模态框时点击空白区域
+$(window).click(function(event) {
+    if ($(event.target).is("#infoModal")) {
+        $("#infoModal").hide();
+    }
+});
+</script>
+
+</body>
+</html>
